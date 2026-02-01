@@ -241,14 +241,27 @@ function shouldPixelate(ageDays: number): boolean {
       </button>
       <div class="header-center">
         <h1 class="mosaic-title">Week of {{ weekStartFormatted }}</h1>
-        <p class="mosaic-subtitle">Fading to Blur</p>
-        <div class="decay-meter">
-          <div 
-            v-for="i in 5" 
-            :key="i"
-            class="decay-square"
-            :class="{ 'filled': (i - 1) / 5 <= weekDecayProgress }"
-          ></div>
+        <div class="decay-progression">
+          <div class="decay-sample">
+            <div class="sample-box" style="filter: none;"></div>
+            <span class="sample-label">Day 0</span>
+          </div>
+          <div class="decay-sample">
+            <div class="sample-box" style="filter: blur(1px);"></div>
+            <span class="sample-label">Days 1-2</span>
+          </div>
+          <div class="decay-sample">
+            <div class="sample-box" style="filter: blur(2px) saturate(0.8);"></div>
+            <span class="sample-label">Days 3-4</span>
+          </div>
+          <div class="decay-sample">
+            <div class="sample-box" style="filter: blur(3px) saturate(0.6) contrast(0.9);"></div>
+            <span class="sample-label">Days 5-6</span>
+          </div>
+          <div class="decay-sample pixelated-sample">
+            <div class="sample-box"></div>
+            <span class="sample-label">Days 7+</span>
+          </div>
         </div>
       </div>
     </header>
@@ -368,7 +381,57 @@ function shouldPixelate(ageDays: number): boolean {
   opacity: 0.7;
 }
 
+.mosaic-subtitle {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 8px 0;
+  opacity: 0.7;
+}
+
+.decay-progression {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.decay-sample {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.sample-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, var(--accent), rgba(43, 76, 126, 0.5));
+  border: 1px solid rgba(110, 106, 95, 0.2);
+  transition: filter 0.3s;
+}
+
+.decay-sample.pixelated-sample .sample-box {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  opacity: 0.75;
+  background: linear-gradient(135deg, var(--bg), var(--panel));
+  border: 1px solid;
+  border-image: linear-gradient(135deg, rgba(110, 106, 95, 0.1), rgba(110, 106, 95, 0.05)) 1;
+}
+
+.sample-label {
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.8;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .decay-meter {
+  display: none;
   display: flex;
   justify-content: center;
   gap: 4px;
