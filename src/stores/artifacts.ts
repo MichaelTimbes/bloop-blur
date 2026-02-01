@@ -2,9 +2,8 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { artifactRepo } from '../repositories/artifacts';
 import { generateId } from '../utils/helpers';
-import { getISODate, getWeekKey, getAgeDays } from '../utils/date';
+import { getISODate, getWeekKey } from '../utils/date';
 import type { Artifact } from '../types';
-import { useSettingsStore } from './settings';
 
 export const useArtifactStore = defineStore('artifacts', () => {
   const artifacts = ref<Artifact[]>([]);
@@ -24,9 +23,10 @@ export const useArtifactStore = defineStore('artifacts', () => {
   async function saveArtifact(
     blob: Blob,
     sparkPackId: string,
-    sparkIndex: number
+    sparkIndex: number,
+    customTs?: number
   ): Promise<Artifact> {
-    const now = Date.now();
+    const now = customTs ?? Date.now();
     const artifact: Artifact = {
       id: generateId(),
       ts: now,
@@ -66,38 +66,10 @@ export const useArtifactStore = defineStore('artifacts', () => {
     artifacts.value = artifacts.value.filter(a => a.id !== id);
   }
 
-  // Run cleanup job based on deletion policy
-  async function runCleanupJob() {
-    await loadArtifacts();
-    
-    const settingsStore = useSettingsStore();
-    const policy = settingsStore.settings.deletionPolicy;
-    
-    if (policy === 'off') return;
-
-    const now = Date.now();
-    const idsToDelete: string[] = [];
-
-    if (policy === 'delete-14-days') {
-      // Delete artifacts older than 14 days
-      artifacts.value.forEach(artifact => {
-        if (getAgeDays(artifact.ts, now) > 14) {
-          idsToDelete.push(artifact.id);
-        }
-      });
-    } else if (policy === 'keep-4-weeks') {
-      // Delete artifacts older than 28 days (4 weeks)
-      artifacts.value.forEach(artifact => {
-        if (getAgeDays(artifact.ts, now) > 28) {
-          idsToDelete.push(artifact.id);
-        }
-      });
-    }
-
-    if (idsToDelete.length > 0) {
-      await artifactRepo.deleteArtifactsByIds(idsToDelete);
-      artifacts.value = artifacts.value.filter(a => !idsToDelete.includes(a.id));
-    }
+  // Clear all artifacts
+  async function clearAll() {
+    await artifactRepo.clearAllArtifacts();
+    artifacts.value = [];
   }
 
   return {
@@ -109,6 +81,6 @@ export const useArtifactStore = defineStore('artifacts', () => {
     loadArtifacts,
     saveArtifact,
     deleteArtifact,
-    runCleanupJob
+    clearAll
   };
 });

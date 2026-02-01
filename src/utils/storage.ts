@@ -1,5 +1,5 @@
 import type { Trace, Settings } from '../types';
-import { DEFAULT_VIBE_PACK, DEFAULT_DELETION_POLICY } from '../config';
+import { DEFAULT_VIBE_PACK } from '../config';
 
 const TRACE_KEY = 'boop-blur-trace';
 const SETTINGS_KEY = 'boop-blur-settings';
@@ -44,8 +44,7 @@ export function getSettings(): Settings {
     return JSON.parse(stored);
   }
   return {
-    activeVibePack: DEFAULT_VIBE_PACK,
-    deletionPolicy: DEFAULT_DELETION_POLICY
+    activeVibePack: DEFAULT_VIBE_PACK
   };
 }
 

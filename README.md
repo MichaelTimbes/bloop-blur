@@ -202,7 +202,6 @@ interface Trace {
 
 interface Settings {
   activeVibePack: string;
-  deletionPolicy: 'off' | 'keep-4-weeks' | 'delete-14-days';
 }
 ```
 

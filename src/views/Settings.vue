@@ -3,11 +3,12 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSettingsStore } from '../stores/settings';
 import { useTraceStore } from '../stores/trace';
-import type { DeletionPolicy } from '../types';
+import { useArtifactStore } from '../stores/artifacts';
 
 const router = useRouter();
 const settingsStore = useSettingsStore();
 const traceStore = useTraceStore();
+const artifactStore = useArtifactStore();
 
 const vibePacks = [
   { id: 'zen-but-dumb', name: 'Zen but Dumb' },
@@ -17,23 +18,30 @@ const vibePacks = [
   { id: 'nature-but-unhinged', name: 'Nature but Unhinged' }
 ];
 
-const deletionPolicies: { value: DeletionPolicy; label: string; description: string }[] = [
-  { value: 'off', label: 'Off', description: 'Keep all artifacts forever' },
-  { value: 'keep-4-weeks', label: 'Keep 4 weeks', description: 'Delete artifacts older than 28 days' },
-  { value: 'delete-14-days', label: 'Delete 14 days', description: 'Delete artifacts older than 14 days' }
-];
+const showClearModal = ref(false);
 
 function handleVibePackChange(event: Event) {
   const select = event.target as HTMLSelectElement;
   settingsStore.setActiveVibePack(select.value);
 }
 
-function handleDeletionPolicyChange(event: Event) {
-  const select = event.target as HTMLSelectElement;
-  settingsStore.setDeletionPolicy(select.value as DeletionPolicy);
+function goBack() {
+  router.push('/');
 }
 
-function goBack() {
+function openClearModal() {
+  showClearModal.value = true;
+}
+
+function closeClearModal() {
+  showClearModal.value = false;
+}
+
+async function confirmClearAllArtifacts() {
+  await artifactStore.clearAll();
+  traceStore.reset();
+  settingsStore.reset();
+  closeClearModal();
   router.push('/');
 }
 </script>
@@ -79,33 +87,6 @@ function goBack() {
       </section>
 
       <section class="settings-section">
-        <h2 class="section-title">Deletion Policy</h2>
-        <p class="section-description">
-          Automatically delete old artifacts to keep things ephemeral
-        </p>
-        <select
-          class="settings-select"
-          :value="settingsStore.settings.deletionPolicy"
-          @change="handleDeletionPolicyChange"
-        >
-          <option
-            v-for="policy in deletionPolicies"
-            :key="policy.value"
-            :value="policy.value"
-          >
-            {{ policy.label }}
-          </option>
-        </select>
-        <p class="policy-description">
-          {{
-            deletionPolicies.find(
-              p => p.value === settingsStore.settings.deletionPolicy
-            )?.description
-          }}
-        </p>
-      </section>
-
-      <section class="settings-section">
         <h2 class="section-title">About</h2>
         <p class="about-text">
           Boop-Blur is a tiny, local-first web app that helps you feel real again
@@ -116,7 +97,35 @@ function goBack() {
           Version 0.1.0
         </p>
       </section>
+
+      <section class="settings-section danger-section">
+        <h2 class="section-title">Danger Zone</h2>
+        <p class="section-description">
+          Permanently delete all artifacts, reset your boop counter, and clear all settings.
+        </p>
+        <button class="danger-button" @click="openClearModal">
+          Clear All Artifacts
+        </button>
+      </section>
     </main>
+
+    <!-- Clear Confirmation Modal -->
+    <div v-if="showClearModal" class="modal-overlay" @click="closeClearModal">
+      <div class="modal-content" @click.stop>
+        <h2 class="modal-title">Clear All Artifacts?</h2>
+        <p class="modal-message">
+          This will permanently delete all your artifacts and reset your boop counter to 0. This action cannot be undone.
+        </p>
+        <div class="modal-buttons">
+          <button class="modal-button cancel-button" @click="closeClearModal">
+            Cancel
+          </button>
+          <button class="modal-button danger-confirm-button" @click="confirmClearAllArtifacts">
+            Clear All
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -254,6 +263,109 @@ function goBack() {
   color: var(--muted);
   opacity: 0.6;
   font-size: 12px;
+}
+
+.danger-section {
+  border-bottom-color: #d97777;
+}
+
+.danger-button {
+  padding: 12px 20px;
+  border: 2px solid #d97777;
+  border-radius: var(--radius);
+  background: transparent;
+  color: #d97777;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.danger-button:hover {
+  background: rgba(217, 119, 119, 0.1);
+  border-color: #c45555;
+  color: #c45555;
+}
+
+/* Clear Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 32px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #d97777;
+  margin: 0;
+}
+
+.modal-message {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  margin: 0;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.modal-button {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid var(--muted);
+  border-radius: var(--radius);
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-button.cancel-button {
+  color: var(--muted);
+}
+
+.modal-button.cancel-button:hover {
+  background: rgba(110, 106, 95, 0.1);
+  border-color: var(--text);
+  color: var(--text);
+}
+
+.modal-button.danger-confirm-button {
+  border-color: #d97777;
+  color: #d97777;
+}
+
+.modal-button.danger-confirm-button:hover {
+  background: rgba(217, 119, 119, 0.1);
+  border-color: #c45555;
+  color: #c45555;
 }
 
 @media (max-width: 768px) {
