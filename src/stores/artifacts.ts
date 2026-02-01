@@ -100,6 +100,12 @@ export const useArtifactStore = defineStore('artifacts', () => {
     }
   }
 
+  // Clear all artifacts
+  async function clearAll() {
+    await artifactRepo.clearAllArtifacts();
+    artifacts.value = [];
+  }
+
   return {
     artifacts,
     loading,
@@ -109,6 +115,7 @@ export const useArtifactStore = defineStore('artifacts', () => {
     loadArtifacts,
     saveArtifact,
     deleteArtifact,
-    runCleanupJob
+    runCleanupJob,
+    clearAll
   };
 });

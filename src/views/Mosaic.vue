@@ -30,6 +30,9 @@ const peekArtifactId = ref<string | null>(null);
 const peekTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
 const pixelatedCanvases = new Map<string, HTMLCanvasElement>();
 
+// DEV flag
+const isDevelopment = import.meta.env.DEV;
+
 // Map of vibe pack IDs to their content
 const vibePacks: Record<string, string[]> = {
   'zen-but-dumb': zenButDumb,
@@ -91,6 +94,44 @@ async function loadMosaicArtifacts() {
   } finally {
     loading.value = false;
   }
+}
+
+// DEV: Create test artifacts with different ages to test blur effects
+async function createTestArtifacts() {
+  const now = Date.now();
+  const dayMs = 24 * 60 * 60 * 1000;
+  const ages = [0, 1, 3, 5, 7]; // Days to test
+  
+  for (const age of ages) {
+    // Create a colorful test image
+    const canvas = document.createElement('canvas');
+    canvas.width = 300;
+    canvas.height = 300;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) continue;
+    
+    // Different color for each age
+    const hue = (age * 60) % 360;
+    ctx.fillStyle = `hsl(${hue}, 70%, 60%)`;
+    ctx.fillRect(0, 0, 300, 300);
+    
+    // Add text label
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 40px Georgia';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`Day ${age}`, 150, 150);
+    
+    canvas.toBlob(async (blob) => {
+      if (blob) {
+        const testTs = now - (age * dayMs);
+        await artifactStore.saveArtifact(blob, 'zen-but-dumb', 0, testTs);
+      }
+    }, 'image/png');
+  }
+  
+  // Reload after a short delay
+  setTimeout(() => loadMosaicArtifacts(), 500);
 }
 
 function goBack() {
@@ -304,6 +345,13 @@ function shouldPixelate(ageDays: number): boolean {
             <span class="artifact-age">{{ artifact.ageDays }}d old</span>
           </div>
         </div>
+      </div>
+
+      <!-- DEV: Test button -->
+      <div v-if="isDevelopment" class="dev-section">
+        <button class="dev-button" @click="createTestArtifacts">
+          [DEV] Create Test Artifacts
+        </button>
       </div>
     </main>
 
@@ -592,6 +640,32 @@ function shouldPixelate(ageDays: number): boolean {
   background: rgba(43, 76, 126, 0.05);
   border-radius: 8px;
   border-left: 3px solid var(--accent);
+}
+
+/* DEV Section */
+.dev-section {
+  text-align: center;
+  padding: 20px;
+  margin-top: 20px;
+  border-top: 2px dashed var(--muted);
+}
+
+.dev-button {
+  padding: 10px 16px;
+  border: 2px dashed var(--muted);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted);
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: all 0.2s;
+}
+
+.dev-button:hover {
+  opacity: 1;
+  background: rgba(110, 106, 95, 0.05);
 }
 
 @media (max-width: 768px) {
