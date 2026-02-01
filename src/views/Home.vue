@@ -23,6 +23,11 @@ onMounted(() => {
 });
 
 async function handleBoop() {
+  // Prevent multiple boops on same day
+  if (artifactStore.hasBoopedToday) {
+    return;
+  }
+
   // Get button position for expansion origin
   if (boopButton.value) {
     const rect = boopButton.value.getBoundingClientRect();
@@ -79,7 +84,7 @@ function handleCaptureCancel() {
           class="boop-button" 
           :class="{ 'hiding': isExpanding }"
           @click="handleBoop"
-          :disabled="showInterstitial || showCapture || isExpanding"
+          :disabled="artifactStore.hasBoopedToday || showInterstitial || showCapture || isExpanding"
         >
           I'm here
         </button>
