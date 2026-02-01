@@ -19,6 +19,7 @@ const emit = defineEmits<{
 
 const artifactStore = useArtifactStore();
 const settingsStore = useSettingsStore();
+const isDevelopment = import.meta.env.DEV;
 
 const fileInput = ref<HTMLInputElement | null>(null);
 const capturedBlob = ref<Blob | null>(null);
@@ -78,6 +79,33 @@ function handleDone() {
 function handleCancel() {
   emit('cancel');
 }
+
+// Development only: skip to spark line
+async function skipToSparkLine() {
+  // Create a dummy blob (1x1 white pixel)
+  const canvas = document.createElement('canvas');
+  canvas.width = 1;
+  canvas.height = 1;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, 1, 1);
+  }
+  
+  canvas.toBlob(async (blob) => {
+    if (blob) {
+      capturedBlob.value = blob;
+      const activePackId = settingsStore.settings.activeVibePack;
+      const pack = vibePacks[activePackId] || vibePacks['zen-but-dumb'];
+      const today = getISODate();
+      const hash = hashDateString(today);
+      const sparkIndex = hash % pack.length;
+      sparkLine.value = pack[sparkIndex];
+      await artifactStore.saveArtifact(capturedBlob.value, activePackId, sparkIndex);
+      showSparkLine.value = true;
+    }
+  }, 'image/png');
+}
 </script>
 
 <template>
@@ -107,6 +135,15 @@ function handleCancel() {
 
           <button class="cancel-button" @click="handleCancel">
             Cancel
+          </button>
+
+          <button 
+            v-if="isDevelopment"
+            class="dev-skip-button"
+            @click="skipToSparkLine"
+            :disabled="loading"
+          >
+            [DEV] Skip to Spark
           </button>
         </template>
 
@@ -202,6 +239,34 @@ function handleCancel() {
 .cancel-button:hover {
   background: var(--muted);
   color: white;
+}
+
+.dev-skip-button {
+  width: 100%;
+  padding: 8px;
+  border: 1px dashed var(--muted);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: monospace;
+  opacity: 0.6;
+  margin-top: 12px;
+}
+
+.dev-skip-button:hover:not(:disabled) {
+  opacity: 1;
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(43, 76, 126, 0.05);
+}
+
+.dev-skip-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {
