@@ -112,12 +112,16 @@
   - Artifact info overlay (date, age in days)
   - Empty state messaging
   - Mobile-friendly responsive grid
+  - **DEV: Create Test Artifacts Button** (dev mode only):
+    - Generates 7 colorful test images labeled 1-7
+    - First image created today (crisp)
+    - Each subsequent image 1 day older (up to 7 days ago)
+    - Demonstrates full blur/pixelation decay progression
+    - Auto-reloads mosaic after creation
 
 - [x] **Settings View** (`/settings`)
   - Stats section (total boops card)
   - Vibe pack selector dropdown (5 packs)
-  - Deletion policy selector (off, keep-4-weeks, delete-14-days)
-  - Policy descriptions
   - About section with version info
   - Back button to home
 
@@ -133,7 +137,7 @@
 ## 📝 File Inventory
 
 ### Components (`src/components/`)
-- `App.vue` - Root component, cleanup job
+- `App.vue` - Root component, auth initialization
 - `CaptureFlow.vue` - Photo capture modal with dev skip button (DEV_ONLY)
 - `Interstitial.vue` - Random silly message overlay
 - `SparkLine.vue` - Spark line display component
@@ -231,18 +235,8 @@ All stored as JSON in `src/content/packs/`:
 - [x] **Feature Flags** (`config.ts`)
   - `ENABLE_AUTH` = false (Firebase Auth toggle)
   - `DEFAULT_VIBE_PACK` = 'zen-but-dumb'
-  - `DEFAULT_DELETION_POLICY` = 'off'
   - `DECAY_THRESHOLDS` object (day thresholds for visual effects)
   - Firebase config from env vars
-
-### Deletion Policies (Ephemeral Design)
-
-- [x] **Cleanup Job** (runs on app start in `App.vue`)
-  - Respects deletion policy setting
-  - `off` - no deletion
-  - `delete-14-days` - removes artifacts older than 14 days
-  - `keep-4-weeks` - removes artifacts older than 28 days
-  - Batch deletion via IndexedDB
 
 ---
 

@@ -18,7 +18,6 @@ export interface Trace {
 
 export interface Settings {
   activeVibePack: string;
-  deletionPolicy: 'off' | 'keep-4-weeks' | 'delete-14-days';
 }
 
 export interface VibePack {
@@ -26,5 +25,3 @@ export interface VibePack {
   name: string;
   sparkLines: string[];
 }
-
-export type DeletionPolicy = 'off' | 'keep-4-weeks' | 'delete-14-days';

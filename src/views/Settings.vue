@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router';
 import { useSettingsStore } from '../stores/settings';
 import { useTraceStore } from '../stores/trace';
 import { useArtifactStore } from '../stores/artifacts';
-import type { DeletionPolicy } from '../types';
 
 const router = useRouter();
 const settingsStore = useSettingsStore();
@@ -19,22 +18,11 @@ const vibePacks = [
   { id: 'nature-but-unhinged', name: 'Nature but Unhinged' }
 ];
 
-const deletionPolicies: { value: DeletionPolicy; label: string; description: string }[] = [
-  { value: 'off', label: 'Off', description: 'Keep all artifacts forever' },
-  { value: 'keep-4-weeks', label: 'Keep 4 weeks', description: 'Delete artifacts older than 28 days' },
-  { value: 'delete-14-days', label: 'Delete 14 days', description: 'Delete artifacts older than 14 days' }
-];
-
 const showClearModal = ref(false);
 
 function handleVibePackChange(event: Event) {
   const select = event.target as HTMLSelectElement;
   settingsStore.setActiveVibePack(select.value);
-}
-
-function handleDeletionPolicyChange(event: Event) {
-  const select = event.target as HTMLSelectElement;
-  settingsStore.setDeletionPolicy(select.value as DeletionPolicy);
 }
 
 function goBack() {
@@ -96,33 +84,6 @@ async function confirmClearAllArtifacts() {
             {{ pack.name }}
           </option>
         </select>
-      </section>
-
-      <section class="settings-section">
-        <h2 class="section-title">Deletion Policy</h2>
-        <p class="section-description">
-          Automatically delete old artifacts to keep things ephemeral
-        </p>
-        <select
-          class="settings-select"
-          :value="settingsStore.settings.deletionPolicy"
-          @change="handleDeletionPolicyChange"
-        >
-          <option
-            v-for="policy in deletionPolicies"
-            :key="policy.value"
-            :value="policy.value"
-          >
-            {{ policy.label }}
-          </option>
-        </select>
-        <p class="policy-description">
-          {{
-            deletionPolicies.find(
-              p => p.value === settingsStore.settings.deletionPolicy
-            )?.description
-          }}
-        </p>
       </section>
 
       <section class="settings-section">

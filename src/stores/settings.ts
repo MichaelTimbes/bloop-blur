@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { getSettings, saveSettings as saveSettingsToStorage } from '../utils/storage';
-import type { Settings, DeletionPolicy } from '../types';
+import type { Settings } from '../types';
 
 export const useSettingsStore = defineStore('settings', () => {
   const settings = ref<Settings>(getSettings());
@@ -11,15 +11,9 @@ export const useSettingsStore = defineStore('settings', () => {
     saveSettingsToStorage(settings.value);
   }
 
-  function setDeletionPolicy(policy: DeletionPolicy) {
-    settings.value.deletionPolicy = policy;
-    saveSettingsToStorage(settings.value);
-  }
-
   function reset() {
     settings.value = {
-      activeVibePack: 'zen-but-dumb',
-      deletionPolicy: 'off'
+      activeVibePack: 'zen-but-dumb'
     };
     saveSettingsToStorage(settings.value);
   }
@@ -27,7 +21,6 @@ export const useSettingsStore = defineStore('settings', () => {
   return {
     settings,
     setActiveVibePack,
-    setDeletionPolicy,
     reset
   };
 });

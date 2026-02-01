@@ -90,7 +90,8 @@ async function loadMosaicArtifacts() {
       })
     );
 
-    artifactsWithImages.value = withImages;
+    // Sort by timestamp (newest first)
+    artifactsWithImages.value = withImages.sort((a, b) => b.ts - a.ts);
   } finally {
     loading.value = false;
   }
@@ -100,9 +101,13 @@ async function loadMosaicArtifacts() {
 async function createTestArtifacts() {
   const now = Date.now();
   const dayMs = 24 * 60 * 60 * 1000;
-  const ages = [0, 1, 3, 5, 7]; // Days to test
   
-  for (const age of ages) {
+  // Create 7 artifacts spanning 7 days:
+  // Age 1d created today (age ~0 days)
+  // Age 7d created 7 days ago (age ~7 days)
+  const promises: Promise<void>[] = [];
+  
+  for (let age = 1; age <= 7; age++) {
     // Create a colorful test image
     const canvas = document.createElement('canvas');
     canvas.width = 300;
@@ -111,7 +116,7 @@ async function createTestArtifacts() {
     if (!ctx) continue;
     
     // Different color for each age
-    const hue = (age * 60) % 360;
+    const hue = (age * 20) % 360;
     ctx.fillStyle = `hsl(${hue}, 70%, 60%)`;
     ctx.fillRect(0, 0, 300, 300);
     
@@ -120,18 +125,28 @@ async function createTestArtifacts() {
     ctx.font = 'bold 40px Georgia';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`Day ${age}`, 150, 150);
+    ctx.fillText(`${age}`, 150, 150);
     
-    canvas.toBlob(async (blob) => {
-      if (blob) {
-        const testTs = now - (age * dayMs);
-        await artifactStore.saveArtifact(blob, 'zen-but-dumb', 0, testTs);
-      }
-    }, 'image/png');
+    // Wait for blob conversion and save
+    const promise = new Promise<void>((resolve) => {
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          // First artifact (age 1) is created today, each subsequent is 1 day older
+          const testTs = now - ((age - 1) * dayMs);
+          await artifactStore.saveArtifact(blob, 'zen-but-dumb', 0, testTs);
+        }
+        resolve();
+      }, 'image/png');
+    });
+    
+    promises.push(promise);
   }
   
-  // Reload after a short delay
-  setTimeout(() => loadMosaicArtifacts(), 500);
+  // Wait for all artifacts to be created
+  await Promise.all(promises);
+  
+  // Reload to display new artifacts
+  await loadMosaicArtifacts();
 }
 
 function goBack() {

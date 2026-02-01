@@ -7,7 +7,6 @@ export const DB_VERSION = 1;
 
 // Default settings
 export const DEFAULT_VIBE_PACK = 'zen-but-dumb';
-export const DEFAULT_DELETION_POLICY = 'off'; // 'off' | 'keep-4-weeks' | 'delete-14-days'
 
 // Visual decay thresholds (in days)
 export const DECAY_THRESHOLDS = {

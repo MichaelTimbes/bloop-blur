@@ -2,17 +2,12 @@
 import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from './stores/auth';
-import { useArtifactStore } from './stores/artifacts';
 import { ENABLE_AUTH } from './config';
 
 const router = useRouter();
 const authStore = useAuthStore();
-const artifactStore = useArtifactStore();
 
 onMounted(async () => {
-  // Run cleanup job on app start
-  await artifactStore.runCleanupJob();
-
   // Initialize auth if enabled
   if (ENABLE_AUTH) {
     await authStore.initAuth();
