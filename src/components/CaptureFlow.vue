@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useArtifactStore } from '../stores/artifacts';
 import { useSettingsStore } from '../stores/settings';
 import { getISODate, hashDateString } from '../utils/date';
+import { fadeOut, prefersReducedMotion } from '../utils/flip';
 import SparkLine from './SparkLine.vue';
+import GhostMosaicOverlay from './GhostMosaicOverlay.vue';
 
 // Import all vibe packs
 import zenButDumb from '../content/packs/zen-but-dumb.json';
@@ -11,6 +13,8 @@ import existentialButCozy from '../content/packs/existential-but-cozy.json';
 import relationalNudges from '../content/packs/relational-nudges.json';
 import existentialButMundane from '../content/packs/existential-but-mundane.json';
 import natureButUnhinged from '../content/packs/nature-but-unhinged.json';
+
+type CaptureState = 'capturing' | 'landing' | 'spark' | 'done';
 
 const emit = defineEmits<{
   complete: [];
@@ -23,9 +27,15 @@ const isDevelopment = import.meta.env.DEV;
 
 const fileInput = ref<HTMLInputElement | null>(null);
 const capturedBlob = ref<Blob | null>(null);
-const showSparkLine = ref(false);
+const capturedPreviewUrl = ref<string>('');
 const sparkLine = ref('');
 const loading = ref(false);
+const state = ref<CaptureState>('capturing');
+const savedArtifactId = ref<string>('');
+const ghostMosaicRef = ref<InstanceType<typeof GhostMosaicOverlay> | null>(null);
+const errorMessage = ref<string>('');
+const showNewCapture = ref(false);
+const fadeToBlack = ref(false);
 
 // Map of vibe pack IDs to their content
 const vibePacks: Record<string, string[]> = {
@@ -35,6 +45,10 @@ const vibePacks: Record<string, string[]> = {
   'existential-but-mundane': existentialButMundane,
   'nature-but-unhinged': natureButUnhinged
 };
+
+const showCapture = computed(() => state.value === 'capturing');
+const showLanding = computed(() => state.value === 'landing');
+const showSparkLine = computed(() => state.value === 'spark');
 
 function openFileInput() {
   fileInput.value?.click();
@@ -47,9 +61,11 @@ async function handleFileSelect(event: Event) {
   if (!file) return;
 
   loading.value = true;
+  errorMessage.value = '';
 
   try {
     capturedBlob.value = file;
+    capturedPreviewUrl.value = URL.createObjectURL(file);
 
     // Get today's spark line deterministically
     const activePackId = settingsStore.settings.activeVibePack;
@@ -60,29 +76,75 @@ async function handleFileSelect(event: Event) {
     sparkLine.value = pack[sparkIndex];
 
     // Save artifact
-    await artifactStore.saveArtifact(capturedBlob.value, activePackId, sparkIndex);
+    const artifact = await artifactStore.saveArtifact(capturedBlob.value, activePackId, sparkIndex);
+    savedArtifactId.value = artifact.id;
 
-    // Show spark line
-    showSparkLine.value = true;
+    // Check for reduced motion
+    if (prefersReducedMotion()) {
+      // Skip animation, go straight to spark
+      state.value = 'spark';
+    } else {
+      // Show landing animation
+      state.value = 'landing';
+      // Animation will be triggered after ghost mosaic mounts
+    }
   } catch (error) {
     console.error('Failed to save artifact:', error);
-    emit('cancel');
-  } finally {
+    errorMessage.value = 'Failed to save artifact. Please try again.';
+    loading.value = false;
+  }
+}
+
+async function handleGhostMosaicReady() {
+  if (!ghostMosaicRef.value || prefersReducedMotion()) {
+    // Skip animation
+    state.value = 'spark';
+    return;
+  }
+
+  try {
+    // Show existing mosaic fading in (300ms), pause for 1.5 seconds
+    await new Promise(resolve => setTimeout(resolve, 1800));
+
+    // Now fade in the new capture
+    showNewCapture.value = true;
+
+    // Wait for new capture to fade in (600ms), then start fading to black
+    await new Promise(resolve => setTimeout(resolve, 600));
+
+    // Trigger fade to black transition
+    fadeToBlack.value = true;
+
+    // Wait for fade to black to complete (2.5 seconds)
+    await new Promise(resolve => setTimeout(resolve, 2500));
+
+    // Transition to spark view (which fades in from black)
+    state.value = 'spark';
+    loading.value = false;
+  } catch (error) {
+    console.error('Animation error:', error);
+    state.value = 'spark';
     loading.value = false;
   }
 }
 
 function handleDone() {
+  state.value = 'done';
   emit('complete');
 }
 
 function handleCancel() {
+  // Reset state
+  if (capturedPreviewUrl.value) {
+    URL.revokeObjectURL(capturedPreviewUrl.value);
+  }
+  state.value = 'capturing';
+  errorMessage.value = '';
   emit('cancel');
 }
 
 // Development only: skip to spark line
 async function skipToSparkLine() {
-  // Create a dummy blob (1x1 white pixel)
   const canvas = document.createElement('canvas');
   canvas.width = 1;
   canvas.height = 1;
@@ -101,8 +163,9 @@ async function skipToSparkLine() {
       const hash = hashDateString(today);
       const sparkIndex = hash % pack.length;
       sparkLine.value = pack[sparkIndex];
-      await artifactStore.saveArtifact(capturedBlob.value, activePackId, sparkIndex);
-      showSparkLine.value = true;
+      const artifact = await artifactStore.saveArtifact(capturedBlob.value, activePackId, sparkIndex);
+      savedArtifactId.value = artifact.id;
+      state.value = 'spark';
     }
   }, 'image/png');
 }
@@ -110,50 +173,67 @@ async function skipToSparkLine() {
 
 <template>
   <div class="capture-flow">
-    <div class="capture-overlay">
+    <!-- Capture modal -->
+    <div v-if="showCapture" class="capture-overlay">
       <div class="capture-content">
-        <template v-if="!showSparkLine">
-          <h2 class="capture-title">Capture a moment</h2>
-          <p class="capture-subtitle">Take or select a photo</p>
+        <h2 class="capture-title">Capture this moment</h2>
+        <p class="capture-subtitle">Take or select a photo</p>
 
-          <input
-            ref="fileInput"
-            type="file"
-            accept="image/*"
-            capture="environment"
-            style="display: none"
-            @change="handleFileSelect"
-          />
-
-          <button 
-            class="capture-button" 
-            @click="openFileInput"
-            :disabled="loading"
-          >
-            {{ loading ? 'Saving...' : 'Choose Photo' }}
-          </button>
-
-          <button class="cancel-button" @click="handleCancel">
-            Cancel
-          </button>
-
-          <button 
-            v-if="isDevelopment"
-            class="dev-skip-button"
-            @click="skipToSparkLine"
-            :disabled="loading"
-          >
-            [DEV] Skip to Spark
-          </button>
-        </template>
-
-        <SparkLine 
-          v-else
-          :spark-line="sparkLine"
-          @done="handleDone"
+        <input
+          ref="fileInput"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          style="display: none"
+          @change="handleFileSelect"
         />
+
+        <button 
+          class="capture-button" 
+          @click="openFileInput"
+          :disabled="loading"
+        >
+          {{ loading ? 'Saving...' : 'Choose Photo' }}
+        </button>
+
+        <button class="cancel-button" @click="handleCancel">
+          Cancel
+        </button>
+
+        <button 
+          v-if="isDevelopment"
+          class="dev-skip-button"
+          @click="skipToSparkLine"
+          :disabled="loading"
+        >
+          [DEV] Skip to Spark
+        </button>
+
+        <p v-if="errorMessage" class="error-message">
+          {{ errorMessage }}
+        </p>
       </div>
     </div>
+
+    <!-- Landing animation with ghost mosaic -->
+    <GhostMosaicOverlay
+      v-if="showLanding"
+      ref="ghostMosaicRef"
+      :artifacts="artifactStore.currentWeekArtifacts"
+      :target-artifact-id="savedArtifactId"
+      :captured-image-url="capturedPreviewUrl"
+      :show="showLanding"
+      :show-new-capture="showNewCapture"
+      :fade-to-black="fadeToBlack"
+      @ready="handleGhostMosaicReady"
+    />
+
+    <!-- Spark line view -->
+    <SparkLine 
+      v-if="showSparkLine"
+      :spark-line="sparkLine"
+      @done="handleDone"
+    />
   </div>
 </template>
 
@@ -267,6 +347,12 @@ async function skipToSparkLine() {
 .dev-skip-button:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+.error-message {
+  color: #d32f2f;
+  font-size: 13px;
+  margin-top: 16px;
 }
 
 @media (max-width: 768px) {

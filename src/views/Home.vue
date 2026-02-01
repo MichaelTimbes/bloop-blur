@@ -11,6 +11,7 @@ const router = useRouter();
 const artifactStore = useArtifactStore();
 const traceStore = useTraceStore();
 const settingsStore = useSettingsStore();
+const isDevelopment = import.meta.env.DEV;
 
 const showInterstitial = ref(false);
 const showCapture = ref(false);
@@ -23,8 +24,8 @@ onMounted(() => {
 });
 
 async function handleBoop() {
-  // Prevent multiple boops on same day
-  if (artifactStore.hasBoopedToday) {
+  // Prevent multiple boops on same day (except in dev mode)
+  if (!isDevelopment && artifactStore.hasBoopedToday) {
     return;
   }
 
@@ -84,12 +85,12 @@ function handleCaptureCancel() {
           class="boop-button" 
           :class="{ 'hiding': isExpanding }"
           @click="handleBoop"
-          :disabled="artifactStore.hasBoopedToday || showInterstitial || showCapture || isExpanding"
+          :disabled="(!isDevelopment && artifactStore.hasBoopedToday) || showInterstitial || showCapture || isExpanding"
         >
           I'm here
         </button>
         
-        <p v-if="artifactStore.hasBoopedToday" class="already-booped">
+        <p v-if="!isDevelopment && artifactStore.hasBoopedToday" class="already-booped">
           ✓ You've already booped today
         </p>
       </div>

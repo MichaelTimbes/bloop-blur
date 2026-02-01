@@ -19,11 +19,19 @@
   - Full-screen overlay with muted blue background
   - Fade-in + pulse animations
 
-- [x] **Photo Capture Flow** (`CaptureFlow.vue`)
-  - Native `<input type="file" accept="image/*" capture="environment">`
-  - File selection → save to IndexedDB → show spark line
-  - Cancel option available
+- [x] **Photo Capture Flow** (`CaptureFlow.vue` + `GhostMosaicOverlay.vue`)
+  - **State Machine**: capturing → landing → spark → done
+  - File input with native `<input type="file" accept="image/*" capture="environment">`
+  - File selection → save to IndexedDB → FLIP animation
+  - **FLIP Animation** (prefers-reduced-motion aware):
+    - Shows ghost mosaic overlay (lightweight contact sheet grid)
+    - Animates captured image from center to target tile
+    - Settle bounce (scale 0.98 → 1.0) on target
+    - Overlay fades out with optional blur effect
+  - Error handling with user-friendly messages
+  - Cancel option available at capture stage
   - Loading state during save
+  - DEV: Skip button to jump to spark preview
 
 - [x] **Spark Line Display** (`SparkLine.vue`)
   - Shows single spark line from active vibe pack
@@ -138,7 +146,8 @@
 
 ### Components (`src/components/`)
 - `App.vue` - Root component, auth initialization
-- `CaptureFlow.vue` - Photo capture modal with dev skip button (DEV_ONLY)
+- `CaptureFlow.vue` - Photo capture + FLIP landing animation orchestration
+- `GhostMosaicOverlay.vue` - Ghost mosaic grid for landing animation
 - `Interstitial.vue` - Random silly message overlay
 - `SparkLine.vue` - Spark line display component
 
@@ -222,6 +231,12 @@ All stored as JSON in `src/content/packs/`:
   - `generateId()` - UUID v4 generation
   - `blobToDataURL()` - Convert Blob to data URL
   - `getRandomItem()` - Random array element
+
+- [x] **FLIP Animation Utils** (`utils/flip.ts`)
+  - `flipAnimate()` - Animate element with FLIP technique (position + scale)
+  - `settleAnimate()` - Bounce settle effect on landing
+  - `fadeOut()` - Fade with optional blur
+  - `prefersReducedMotion()` - Respect user motion preferences
 
 ### Router & Navigation
 
