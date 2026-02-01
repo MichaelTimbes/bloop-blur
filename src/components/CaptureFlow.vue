@@ -68,12 +68,21 @@ async function handleFileSelect(event: Event) {
     capturedPreviewUrl.value = URL.createObjectURL(file);
 
     // Get today's spark line deterministically
-    const activePackId = settingsStore.settings.activeVibePack;
-    const pack = vibePacks[activePackId] || vibePacks['zen-but-dumb'];
+    const activePackId = settingsStore.settings.activeVibePack || 'zen-but-dumb';
+    const pack = vibePacks[activePackId];
     const today = getISODate();
     const hash = hashDateString(today);
-    const sparkIndex = hash % pack.length;
-    sparkLine.value = pack[sparkIndex];
+    
+    let sparkIndex: number;
+    if (!pack) {
+      console.warn(`Vibe pack "${activePackId}" not found, falling back to zen-but-dumb`);
+      const fallbackPack = vibePacks['zen-but-dumb'];
+      sparkIndex = hash % fallbackPack.length;
+      sparkLine.value = fallbackPack[sparkIndex];
+    } else {
+      sparkIndex = hash % pack.length;
+      sparkLine.value = pack[sparkIndex];
+    }
 
     // Save artifact
     const artifact = await artifactStore.saveArtifact(capturedBlob.value, activePackId, sparkIndex);
@@ -157,12 +166,22 @@ async function skipToSparkLine() {
   canvas.toBlob(async (blob) => {
     if (blob) {
       capturedBlob.value = blob;
-      const activePackId = settingsStore.settings.activeVibePack;
-      const pack = vibePacks[activePackId] || vibePacks['zen-but-dumb'];
+      const activePackId = settingsStore.settings.activeVibePack || 'zen-but-dumb';
+      const pack = vibePacks[activePackId];
       const today = getISODate();
       const hash = hashDateString(today);
-      const sparkIndex = hash % pack.length;
-      sparkLine.value = pack[sparkIndex];
+      
+      let sparkIndex: number;
+      if (!pack) {
+        console.warn(`Vibe pack "${activePackId}" not found, falling back to zen-but-dumb`);
+        const fallbackPack = vibePacks['zen-but-dumb'];
+        sparkIndex = hash % fallbackPack.length;
+        sparkLine.value = fallbackPack[sparkIndex];
+      } else {
+        sparkIndex = hash % pack.length;
+        sparkLine.value = pack[sparkIndex];
+      }
+      
       const artifact = await artifactStore.saveArtifact(capturedBlob.value, activePackId, sparkIndex);
       savedArtifactId.value = artifact.id;
       state.value = 'spark';
