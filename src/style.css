@@ -1,0 +1,50 @@
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 
+    'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #1c1b16;
+  background-color: #f6f1e7;
+
+  /* Theme tokens */
+  --bg: #f6f1e7;
+  --panel: #fff8ef;
+  --text: #1c1b16;
+  --muted: #6e6a5f;
+  --accent: #2b4c7e;
+  --radius: 18px;
+  --shadow: 0 10px 30px rgba(0,0,0,0.08);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#app {
+  width: 100%;
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* Mobile-first responsive design */
+@media (max-width: 768px) {
+  body {
+    padding: 0;
+  }
+}
