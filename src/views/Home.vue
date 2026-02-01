@@ -14,30 +14,51 @@ const settingsStore = useSettingsStore();
 
 const showInterstitial = ref(false);
 const showCapture = ref(false);
+const isExpanding = ref(false);
+const boopButton = ref<HTMLButtonElement | null>(null);
+const expandOrigin = ref({ x: 0, y: 0 });
 
 onMounted(() => {
   artifactStore.loadArtifacts();
 });
 
 async function handleBoop() {
-  // Show interstitial
-  showInterstitial.value = true;
+  // Get button position for expansion origin
+  if (boopButton.value) {
+    const rect = boopButton.value.getBoundingClientRect();
+    expandOrigin.value = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2
+    };
+  }
 
-  // Wait for interstitial to finish (1-2 seconds)
-  const duration = 1000 + Math.random() * 1000;
+  // Start expansion animation
+  isExpanding.value = true;
+
+  // Wait for expansion to complete (600ms)
   setTimeout(() => {
-    showInterstitial.value = false;
-    showCapture.value = true;
-  }, duration);
+    // Show interstitial after expansion
+    showInterstitial.value = true;
+
+    // Wait for interstitial to finish (1-2 seconds)
+    const duration = 1000 + Math.random() * 1000;
+    setTimeout(() => {
+      showInterstitial.value = false;
+      showCapture.value = true;
+      // Keep isExpanding true to maintain background
+    }, duration);
+  }, 600);
 }
 
 function handleCaptureComplete() {
   showCapture.value = false;
+  isExpanding.value = false;
   traceStore.recordBoop();
 }
 
 function handleCaptureCancel() {
   showCapture.value = false;
+  isExpanding.value = false;
 }
 </script>
 
@@ -54,9 +75,11 @@ function handleCaptureCancel() {
     <main class="home-main">
       <div class="boop-container">
         <button 
+          ref="boopButton"
           class="boop-button" 
+          :class="{ 'hiding': isExpanding }"
           @click="handleBoop"
-          :disabled="showInterstitial || showCapture"
+          :disabled="showInterstitial || showCapture || isExpanding"
         >
           I'm here
         </button>
@@ -70,6 +93,16 @@ function handleCaptureCancel() {
         <p class="stat-item">Total boops: {{ traceStore.trace.totalBoops }}</p>
       </div>
     </main>
+
+    <!-- Expanding background overlay -->
+    <div 
+      v-if="isExpanding"
+      class="expand-overlay"
+      :style="{
+        '--expand-x': expandOrigin.x + 'px',
+        '--expand-y': expandOrigin.y + 'px'
+      }"
+    ></div>
 
     <Interstitial v-if="showInterstitial" />
     <CaptureFlow 
@@ -144,8 +177,14 @@ function handleCaptureCancel() {
   font-size: 24px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, color 0.3s;
   box-shadow: var(--shadow);
+  position: relative;
+  z-index: 1;
+}
+
+.boop-button.hiding {
+  color: transparent;
 }
 
 .boop-button:hover:not(:disabled) {
@@ -174,6 +213,38 @@ function handleCaptureCancel() {
 
 .stat-item {
   margin: 0;
+}
+
+.expand-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--accent);
+  z-index: 998;
+  animation: circularExpand 1.618s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  clip-path: circle(0% at var(--expand-x) var(--expand-y));
+}
+
+@keyframes circularExpand {
+  0% {
+    clip-path: circle(0% at var(--expand-x) var(--expand-y));
+  }
+  100% {
+    clip-path: circle(150% at var(--expand-x) var(--expand-y));
+  }
+}
+
+@keyframes expandToScreen {
+  0% {
+    transform: scale(1);
+    border-radius: 50%;
+  }
+  100% {
+    transform: scale(15);
+    border-radius: 0%;
+  }
 }
 
 @media (max-width: 768px) {
