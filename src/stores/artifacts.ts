@@ -43,10 +43,11 @@ export const useArtifactStore = defineStore('artifacts', () => {
     return artifact;
   }
 
-  // Get artifacts for the current week
+  // Get artifacts for the current week (last 7 days)
   const currentWeekArtifacts = computed(() => {
-    const currentWeek = getWeekKey();
-    return artifacts.value.filter(a => a.weekKey === currentWeek);
+    const now = Date.now();
+    const sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000);
+    return artifacts.value.filter(a => a.ts >= sevenDaysAgo && a.ts <= now);
   });
 
   // Get artifacts for today

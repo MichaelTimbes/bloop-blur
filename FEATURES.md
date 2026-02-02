@@ -1,6 +1,6 @@
 # Boop-Blur Feature Inventory
 
-> **Last Updated:** January 31, 2026 (Mosaic Upgrade)  
+> **Last Updated:** February 2, 2026 (Last 7 Days View)  
 > **Purpose:** Track all implemented functionality to prevent accidental overwrites during future development
 
 ---
@@ -90,6 +90,7 @@
   - Handles interstitial/capture flow state
 
 - [x] **Mosaic View** (`/mosaic`)
+  - **Displays last 7 days of artifacts** (rolling window, not ISO week bound)
   - **Sticky Living Header** with week context:
     - Left: Back button
     - Center: Title "Week of {Mon DD}", subtitle "Fading to Blur", decay meter
@@ -337,7 +338,7 @@ App.vue
 ## 🔑 Key Technical Decisions
 
 1. **Local-First:** All artifacts stored in IndexedDB, never uploaded to cloud
-2. **ISO Weeks:** Using ISO 8601 standard (week starts Monday) for mosaic grouping
+2. **Last 7 Days Display:** Mosaic shows artifacts from last 7 days (rolling window), not ISO week bound for better UX across week boundaries
 3. **Deterministic Spark Lines:** Same date always shows same spark line (via hash)
 4. **Canvas Pixelation:** 7+ day old photos use canvas downscaling for decay effect
 5. **No Edit/Delete UI:** Artifacts can only be removed via automatic deletion policies
